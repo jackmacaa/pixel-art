@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for pixel art app */
+.poker-table-bg {
+  background: linear-gradient(135deg, #1a5f1a 0%, #0d4d0d 100%);
+  min-height: 100vh;
+}
+
+.mobile-vh-60 {
+  height: calc(var(--vh, 1vh) * 60);
+}
+
+@supports (height: 100dvh) {
+  .mobile-vh-60 {
+    height: 60dvh;
+  }
+}
+
+.pb-safe {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
