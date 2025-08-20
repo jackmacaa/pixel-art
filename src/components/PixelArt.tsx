@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 
 // 13x13 grid for pixel art
 const SIZE = 13;
@@ -21,14 +21,20 @@ export const PixelArt: React.FC = () => {
     Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => 0))
   );
   const [isDragging, setIsDragging] = useState(false);
+  const [dragMode, setDragMode] = useState<"add" | "remove" | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-  const handlePaint = (row: number, col: number) => {
+  const handlePaint = (row: number, col: number, forceMode?: "add" | "remove") => {
     setGrid((prev) => {
       const next = prev.map((r) => r.slice());
-      // If clicking on a painted tile, clear it (set to 0)
-      if (next[row][col] !== 0) {
+      const currentValue = next[row][col];
+      const mode = forceMode || dragMode;
+
+      if (mode === "remove" || (mode === null && currentValue !== 0)) {
+        // Remove pixel (set to 0)
         next[row][col] = 0;
       } else {
+        // Add pixel with current color
         next[row][col] = colorIndex;
       }
       return next;
@@ -39,10 +45,81 @@ export const PixelArt: React.FC = () => {
     setGrid(Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => 0)));
   };
 
+  const getCellFromPoint = (clientX: number, clientY: number): Cell | null => {
+    if (!gridRef.current) return null;
+
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    // Calculate cell size (assuming equal spacing)
+    const cellSize = rect.width / SIZE;
+
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+
+    if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
+      return { row, col };
+    }
+    return null;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const cell = getCellFromPoint(touch.clientX, touch.clientY);
+
+    if (cell) {
+      const currentValue = grid[cell.row][cell.col];
+      const mode = currentValue === 0 ? "add" : "remove";
+
+      setDragMode(mode);
+      setIsDragging(true);
+      handlePaint(cell.row, cell.col, mode);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!isDragging || !dragMode) return;
+
+    const touch = e.touches[0];
+    const cell = getCellFromPoint(touch.clientX, touch.clientY);
+
+    if (cell) {
+      handlePaint(cell.row, cell.col, dragMode);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    setDragMode(null);
+  };
+
+  const handleMouseDown = (row: number, col: number) => {
+    const currentValue = grid[row][col];
+    const mode = currentValue === 0 ? "add" : "remove";
+
+    setDragMode(mode);
+    setIsDragging(true);
+    handlePaint(row, col, mode);
+  };
+
+  const handleMouseEnter = (row: number, col: number) => {
+    if (isDragging && dragMode) {
+      handlePaint(row, col, dragMode);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragMode(null);
+  };
+
   useEffect(() => {
-    const up = () => setIsDragging(false);
-    document.addEventListener("mouseup", up);
-    return () => document.removeEventListener("mouseup", up);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
   const cells: Cell[] = useMemo(() => {
@@ -86,19 +163,18 @@ export const PixelArt: React.FC = () => {
       {/* Grid - mobile-friendly container height */}
       <div className="relative mx-auto mt-4 mobile-vh-60" style={{ maxWidth: "100vw" }}>
         <div className="mx-4">
-          <div className="grid grid-cols-13 gap-1 p-3 bg-gray-900 bg-opacity-30 rounded-lg select-none touch-none">
+          <div
+            ref={gridRef}
+            className="grid grid-cols-13 gap-1 p-3 bg-gray-900 bg-opacity-30 rounded-lg select-none touch-none"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             {cells.map(({ row, col }) => (
               <button
                 key={`${row}-${col}`}
-                onPointerDown={(e) => {
-                  setIsDragging(true);
-                  handlePaint(row, col);
-                  e.preventDefault();
-                }}
-                onPointerEnter={() => {
-                  if (isDragging) handlePaint(row, col);
-                }}
-                onPointerUp={() => setIsDragging(false)}
+                onMouseDown={() => handleMouseDown(row, col)}
+                onMouseEnter={() => handleMouseEnter(row, col)}
                 className="aspect-square border border-gray-700"
                 style={{ backgroundColor: PALETTE[grid[row][col]] }}
               />
