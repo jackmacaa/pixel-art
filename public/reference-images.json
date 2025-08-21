@@ -1,0 +1,27 @@
+[
+    {
+        "name": "Mario",
+        "url": "/images/mario.jpg",
+        "description": "Classic Mario pixel art"
+    },
+    {
+        "name": "Sonic",
+        "url": "/images/sonic.jpg",
+        "description": "Sonic the Hedgehog pixel art"
+    },
+    {
+        "name": "Homer",
+        "url": "/images/homer.png",
+        "description": "Homer Simpson pixel art"
+    },
+    {
+        "name": "Bart",
+        "url": "/images/bart.jpg",
+        "description": "Bart Simpson pixel art"
+    },
+    {
+        "name": "Pokemon",
+        "url": "/images/pokemon.jpg",
+        "description": "Pokemon pixel art"
+    }
+]

@@ -23,6 +23,14 @@ export const PixelArt: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"add" | "remove" | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+  type ReferenceImage = { name: string; url: string; description?: string };
+  const DEFAULT_REFERENCE_IMAGES: ReferenceImage[] = [
+    { name: "Mario", url: "/images/mario.png", description: "Classic Mario pixel art" },
+    { name: "Sonic", url: "/images/sonic.png", description: "Sonic the Hedgehog pixel art" },
+  ];
+  const [referenceImages, setReferenceImages] =
+    useState<ReferenceImage[]>(DEFAULT_REFERENCE_IMAGES);
 
   const handlePaint = (row: number, col: number, forceMode?: "add" | "remove") => {
     setGrid((prev) => {
@@ -122,6 +130,22 @@ export const PixelArt: React.FC = () => {
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
+  // Load local public manifest if available, else fall back to defaults
+  useEffect(() => {
+    fetch("/reference-images.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (
+          Array.isArray(data) &&
+          data.every((d) => typeof d?.name === "string" && typeof d?.url === "string")
+        ) {
+          setReferenceImages(data);
+          setSelectedImageIndex(0);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const cells: Cell[] = useMemo(() => {
     const list: Cell[] = [];
     for (let r = 0; r < SIZE; r++) {
@@ -160,8 +184,8 @@ export const PixelArt: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid - mobile-friendly container height */}
-      <div className="relative mx-auto mt-4 mobile-vh-60" style={{ maxWidth: "100vw" }}>
+      {/* Grid section - width-driven sizing, natural height */}
+      <div className="relative mx-auto mt-2" style={{ maxWidth: "100vw" }}>
         <div className="mx-4">
           <div
             ref={gridRef}
@@ -179,6 +203,50 @@ export const PixelArt: React.FC = () => {
                 style={{ backgroundColor: PALETTE[grid[row][col]] }}
               />
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Reference image area - natural flow, capped height to avoid overlap */}
+      <div className="relative mx-auto mt-1" style={{ maxWidth: "100vw" }}>
+        <div className="mx-4">
+          <div className="bg-gray-900 bg-opacity-30 rounded-lg p-2 flex flex-col">
+            {/* Image selector */}
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-white text-sm">Reference Image</span>
+              <div className="flex gap-1">
+                {referenceImages.map((img, index) => (
+                  <button
+                    key={img.name}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`px-2 py-1 text-xs rounded border ${
+                      index === selectedImageIndex
+                        ? "bg-yellow-600 text-white border-yellow-400"
+                        : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                    }`}
+                    title={img.description || img.name}
+                  >
+                    {img.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Image display */}
+            <div
+              className="flex items-center justify-center overflow-hidden"
+              style={{ maxHeight: "40vh" }}
+            >
+              <img
+                src={
+                  referenceImages[
+                    Math.min(selectedImageIndex, Math.max(0, referenceImages.length - 1))
+                  ]?.url
+                }
+                alt="Reference"
+                className="max-h-full max-w-full object-contain"
+                draggable={false}
+              />
+            </div>
           </div>
         </div>
       </div>

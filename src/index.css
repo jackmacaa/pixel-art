@@ -12,9 +12,17 @@
   height: calc(var(--vh, 1vh) * 60);
 }
 
+.mobile-vh-30 {
+  height: calc(var(--vh, 1vh) * 30);
+}
+
 @supports (height: 100dvh) {
   .mobile-vh-60 {
     height: 60dvh;
+  }
+
+  .mobile-vh-30 {
+    height: 30dvh;
   }
 }
 
