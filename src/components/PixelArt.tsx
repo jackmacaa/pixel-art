@@ -11,14 +11,14 @@ type Cell = { row: number; col: number };
 // Color palettes
 const PALETTES = {
   default: [
-    "#FFDCA3",
-    "#ff4500", // orange
-    "#ff0000", // red
-    "#8a2be2", // purple
-    "#0066ff", // blue
-    "#00ff00", // green
-    "#ffff00", // yellow
-    "#ffffff", // white
+    "#FF0000", // bright red
+    "#FF6D00", // orange
+    "#FFFF00", // yellow
+    "#57AA21", // bright green
+    "#00A9E4", // blue
+    "#005BFF", // purple
+    "#B700FF", // brown
+    "#FFFFFF", // white
   ],
   palette1: [
     "#3A224F", // dark purple
@@ -49,6 +49,26 @@ const PALETTES = {
     "#9900FF", // purple
     "#542C1D", // brown
     "#B4B4B4", // gray
+  ],
+  palette4: [
+    "#5865CF", // blue
+    "#DBF2D6", // green
+    "#F7D824", // yellow
+    "#C7AC60", // orange
+    "#3B3B63", // purple
+    "#202124", // black
+    "#9A3706", // brown
+    "#FFFFFF", // white
+  ],
+  palette5: [
+    "#131E9A", // blue
+    "#0B004D", // purple
+    "#A05846", // brown
+    "#FF0000", // red
+    "#A1BAFF", // blue
+    "#FFCB2F", // yellow
+    "#008505", // green
+    "#FFFFFF", // white
   ],
 } as const;
 
@@ -269,7 +289,7 @@ export const PixelArt: React.FC = () => {
               >
                 {Object.keys(PALETTES).map((paletteName) => (
                   <option key={paletteName} value={paletteName}>
-                    {paletteName === "default" ? "Default" : paletteName.replace("palette", "P")}
+                    {paletteName === "default" ? "Rainbow" : paletteName.replace("palette", "P")}
                   </option>
                 ))}
               </select>
