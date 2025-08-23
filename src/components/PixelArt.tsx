@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 
-// 13x13 grid for pixel art
-const SIZE = 13;
+// Grid size options
+const GRID_SIZES = [8, 16, 32] as const;
+type GridSize = (typeof GRID_SIZES)[number];
+
+// Default grid size
+const DEFAULT_SIZE: GridSize = 16;
 type Cell = { row: number; col: number };
 
 const PALETTE: string[] = [
@@ -16,9 +20,10 @@ const PALETTE: string[] = [
 ];
 
 export const PixelArt: React.FC = () => {
+  const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_SIZE);
   const [colorIndex, setColorIndex] = useState<number>(2);
   const [grid, setGrid] = useState<number[][]>(() =>
-    Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => 0))
+    Array.from({ length: DEFAULT_SIZE }, () => Array.from({ length: DEFAULT_SIZE }, () => 0))
   );
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"add" | "remove" | null>(null);
@@ -50,7 +55,12 @@ export const PixelArt: React.FC = () => {
   };
 
   const handleClearAll = () => {
-    setGrid(Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => 0)));
+    setGrid(Array.from({ length: gridSize }, () => Array.from({ length: gridSize }, () => 0)));
+  };
+
+  const handleGridSizeChange = (newSize: GridSize) => {
+    setGridSize(newSize);
+    setGrid(Array.from({ length: newSize }, () => Array.from({ length: newSize }, () => 0)));
   };
 
   const getCellFromPoint = (clientX: number, clientY: number): Cell | null => {
@@ -61,12 +71,12 @@ export const PixelArt: React.FC = () => {
     const y = clientY - rect.top;
 
     // Calculate cell size (assuming equal spacing)
-    const cellSize = rect.width / SIZE;
+    const cellSize = rect.width / gridSize;
 
     const col = Math.floor(x / cellSize);
     const row = Math.floor(y / cellSize);
 
-    if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
+    if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
       return { row, col };
     }
     return null;
@@ -148,48 +158,68 @@ export const PixelArt: React.FC = () => {
 
   const cells: Cell[] = useMemo(() => {
     const list: Cell[] = [];
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) list.push({ row: r, col: c });
+    for (let r = 0; r < gridSize; r++) {
+      for (let c = 0; c < gridSize; c++) list.push({ row: r, col: c });
     }
     return list;
-  }, []);
+  }, [gridSize]);
 
   return (
     <div className="min-h-screen poker-table-bg">
       {/* Header */}
       <div className="bg-black bg-opacity-60 p-4 border-b border-gray-600">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-white">Pixel Art</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleClearAll}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
-            >
-              Clear All
-            </button>
-            <div className="flex gap-1">
-              {PALETTE.map((hex, i) => (
+          <div className="flex flex-col gap-2">
+            {/* Top row: Grid size selector */}
+            <div className="flex items-center gap-1">
+              <span className="text-white text-sm">Grid:</span>
+              {GRID_SIZES.map((size) => (
                 <button
-                  key={hex + i}
-                  onClick={() => setColorIndex(i)}
-                  className={`w-6 h-6 rounded border ${
-                    i === colorIndex ? "ring-2 ring-yellow-400" : ""
+                  key={size}
+                  onClick={() => handleGridSizeChange(size)}
+                  className={`px-2 py-1 text-xs rounded border ${
+                    size === gridSize
+                      ? "bg-yellow-600 text-white border-yellow-400"
+                      : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
                   }`}
-                  style={{ backgroundColor: hex, borderColor: "#555" }}
-                  title={`Color ${i + 1}`}
-                />
+                >
+                  {size}×{size}
+                </button>
               ))}
+            </div>
+            {/* Bottom row: Color palette and Clear All */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                {PALETTE.map((hex, i) => (
+                  <button
+                    key={hex + i}
+                    onClick={() => setColorIndex(i)}
+                    className={`w-6 h-6 rounded border ${
+                      i === colorIndex ? "ring-2 ring-yellow-400" : ""
+                    }`}
+                    style={{ backgroundColor: hex, borderColor: "#555" }}
+                    title={`Color ${i + 1}`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={handleClearAll}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
+              >
+                Clear All
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Grid section - width-driven sizing, natural height */}
-      <div className="relative mx-auto mt-2" style={{ maxWidth: "100vw" }}>
+      <div className="relative mx-auto mt-1" style={{ maxWidth: "100vw" }}>
         <div className="mx-4">
           <div
             ref={gridRef}
-            className="grid grid-cols-13 gap-1 p-3 bg-gray-900 bg-opacity-30 rounded-lg select-none touch-none"
+            className={`grid bg-gray-900 bg-opacity-30 select-none touch-none`}
+            style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -210,11 +240,26 @@ export const PixelArt: React.FC = () => {
       {/* Reference image area - natural flow, capped height to avoid overlap */}
       <div className="relative mx-auto mt-1" style={{ maxWidth: "100vw" }}>
         <div className="mx-4">
-          <div className="bg-gray-900 bg-opacity-30 rounded-lg p-2 flex flex-col">
-            {/* Image selector */}
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-white text-sm">Reference Image</span>
-              <div className="flex gap-1">
+          <div className="bg-gray-900 bg-opacity-30 rounded-lg p-1">
+            <div className="flex items-start gap-2">
+              {/* Image display */}
+              <div
+                className="flex items-center justify-center overflow-hidden flex-1"
+                style={{ maxHeight: "40vh" }}
+              >
+                <img
+                  src={
+                    referenceImages[
+                      Math.min(selectedImageIndex, Math.max(0, referenceImages.length - 1))
+                    ]?.url
+                  }
+                  alt="Reference"
+                  className="max-h-full max-w-full object-contain"
+                  draggable={false}
+                />
+              </div>
+              {/* Image selector */}
+              <div className="flex flex-col gap-1">
                 {referenceImages.map((img, index) => (
                   <button
                     key={img.name}
@@ -230,22 +275,6 @@ export const PixelArt: React.FC = () => {
                   </button>
                 ))}
               </div>
-            </div>
-            {/* Image display */}
-            <div
-              className="flex items-center justify-center overflow-hidden"
-              style={{ maxHeight: "40vh" }}
-            >
-              <img
-                src={
-                  referenceImages[
-                    Math.min(selectedImageIndex, Math.max(0, referenceImages.length - 1))
-                  ]?.url
-                }
-                alt="Reference"
-                className="max-h-full max-w-full object-contain"
-                draggable={false}
-              />
             </div>
           </div>
         </div>

@@ -4,7 +4,10 @@ export default {
   theme: {
     extend: {
       gridTemplateColumns: {
+        8: "repeat(8, minmax(0, 1fr))",
         13: "repeat(13, minmax(0, 1fr))",
+        16: "repeat(16, minmax(0, 1fr))",
+        32: "repeat(32, minmax(0, 1fr))",
       },
     },
   },
