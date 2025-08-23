@@ -8,20 +8,57 @@ type GridSize = (typeof GRID_SIZES)[number];
 const DEFAULT_SIZE: GridSize = 16;
 type Cell = { row: number; col: number };
 
-const PALETTE: string[] = [
-  "#000000", // black
-  "#ff4500", // orange
-  "#ff0000", // red
-  "#8a2be2", // purple
-  "#0066ff", // blue
-  "#00ff00", // green
-  "#ffff00", // yellow
-  "#ffffff", // white
-];
+// Color palettes
+const PALETTES = {
+  default: [
+    "#FFDCA3",
+    "#ff4500", // orange
+    "#ff0000", // red
+    "#8a2be2", // purple
+    "#0066ff", // blue
+    "#00ff00", // green
+    "#ffff00", // yellow
+    "#ffffff", // white
+  ],
+  palette1: [
+    "#3A224F", // dark purple
+    "#73326A", // purple
+    "#E3755F", // coral
+    "#FFD7A3", // peach
+    "#CFF291", // light green
+    "#50AB76", // green
+    "#2E5C6B", // teal
+    "#1F2E52", // navy
+  ],
+  palette2: [
+    "#C20000", // red
+    "#9E0909", // dark red
+    "#218D00", // green
+    "#00518D", // blue
+    "#EAD200", // yellow
+    "#ECDB42", // light yellow
+    "#E0994C", // orange
+    "#B04500", // dark orange
+  ],
+  palette3: [
+    "#FF000D", // bright red
+    "#FF7E00", // orange
+    "#FFF200", // yellow
+    "#00FF48", // bright green
+    "#0011FF", // blue
+    "#9900FF", // purple
+    "#542C1D", // brown
+    "#B4B4B4", // gray
+  ],
+} as const;
+
+type PaletteName = keyof typeof PALETTES;
+const DEFAULT_PALETTE: PaletteName = "default";
 
 export const PixelArt: React.FC = () => {
   const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_SIZE);
-  const [colorIndex, setColorIndex] = useState<number>(2);
+  const [currentPalette, setCurrentPalette] = useState<PaletteName>(DEFAULT_PALETTE);
+  const [colorIndex, setColorIndex] = useState<number>(7);
   const [grid, setGrid] = useState<number[][]>(() =>
     Array.from({ length: DEFAULT_SIZE }, () => Array.from({ length: DEFAULT_SIZE }, () => 0))
   );
@@ -47,8 +84,8 @@ export const PixelArt: React.FC = () => {
         // Remove pixel (set to 0)
         next[row][col] = 0;
       } else {
-        // Add pixel with current color
-        next[row][col] = colorIndex;
+        // Add pixel with current color (add 1 to account for the shifted indices)
+        next[row][col] = colorIndex + 1;
       }
       return next;
     });
@@ -168,9 +205,9 @@ export const PixelArt: React.FC = () => {
     <div className="min-h-screen poker-table-bg">
       {/* Header */}
       <div className="bg-black bg-opacity-60 p-4 border-b border-gray-600">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-2">
-            {/* Top row: Grid size selector */}
+        <div className="flex flex-col gap-2">
+          {/* Top row: Grid size selector and Clear All */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <span className="text-white text-sm">Grid:</span>
               {GRID_SIZES.map((size) => (
@@ -187,27 +224,55 @@ export const PixelArt: React.FC = () => {
                 </button>
               ))}
             </div>
-            {/* Bottom row: Color palette and Clear All */}
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                {PALETTE.map((hex, i) => (
-                  <button
-                    key={hex + i}
-                    onClick={() => setColorIndex(i)}
-                    className={`w-6 h-6 rounded border ${
-                      i === colorIndex ? "ring-2 ring-yellow-400" : ""
-                    }`}
-                    style={{ backgroundColor: hex, borderColor: "#555" }}
-                    title={`Color ${i + 1}`}
-                  />
-                ))}
-              </div>
-              <button
-                onClick={handleClearAll}
-                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
+            {/* Clear All button with trash icon */}
+            <button
+              onClick={handleClearAll}
+              className="p-2 bg-red-600 hover:bg-red-700 text-white rounded"
+              title="Clear All"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                Clear All
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          </div>
+          {/* Bottom row: Color palette and Palette selector */}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {PALETTES[currentPalette].map((hex, i) => (
+                <button
+                  key={hex + i}
+                  onClick={() => setColorIndex(i)}
+                  className={`w-6 h-6 rounded border ${
+                    i === colorIndex ? "ring-2 ring-yellow-400" : ""
+                  }`}
+                  style={{ backgroundColor: hex, borderColor: "#555" }}
+                  title={`Color ${i + 1}`}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              <select
+                value={currentPalette}
+                onChange={(e) => setCurrentPalette(e.target.value as PaletteName)}
+                className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:border-yellow-400"
+              >
+                {Object.keys(PALETTES).map((paletteName) => (
+                  <option key={paletteName} value={paletteName}>
+                    {paletteName === "default" ? "Default" : paletteName.replace("palette", "P")}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -215,7 +280,7 @@ export const PixelArt: React.FC = () => {
 
       {/* Grid section - width-driven sizing, natural height */}
       <div className="relative mx-auto mt-1" style={{ maxWidth: "100vw" }}>
-        <div className="mx-4">
+        <div className="mx-1">
           <div
             ref={gridRef}
             className={`grid bg-gray-900 bg-opacity-30 select-none touch-none`}
@@ -230,7 +295,10 @@ export const PixelArt: React.FC = () => {
                 onMouseDown={() => handleMouseDown(row, col)}
                 onMouseEnter={() => handleMouseEnter(row, col)}
                 className="aspect-square border border-gray-700"
-                style={{ backgroundColor: PALETTE[grid[row][col]] }}
+                style={{
+                  backgroundColor:
+                    grid[row][col] === 0 ? "#000000" : PALETTES[currentPalette][grid[row][col] - 1],
+                }}
               />
             ))}
           </div>
