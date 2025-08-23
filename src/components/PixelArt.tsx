@@ -11,6 +11,7 @@ type Cell = { row: number; col: number };
 // Color palettes
 const PALETTES = {
   default: [
+    "#000000", // black
     "#FF0000", // bright red
     "#FF6D00", // orange
     "#FFFF00", // yellow
@@ -21,6 +22,7 @@ const PALETTES = {
     "#FFFFFF", // white
   ],
   palette1: [
+    "#000000", // black
     "#3A224F", // dark purple
     "#73326A", // purple
     "#E3755F", // coral
@@ -29,8 +31,10 @@ const PALETTES = {
     "#50AB76", // green
     "#2E5C6B", // teal
     "#1F2E52", // navy
+    "#FFFFFF", // white
   ],
   palette2: [
+    "#000000", // black
     "#C20000", // red
     "#9E0909", // dark red
     "#218D00", // green
@@ -39,8 +43,10 @@ const PALETTES = {
     "#ECDB42", // light yellow
     "#E0994C", // orange
     "#B04500", // dark orange
+    "#FFFFFF", // white
   ],
   palette3: [
+    "#000000", // black
     "#FF000D", // bright red
     "#FF7E00", // orange
     "#FFF200", // yellow
@@ -49,18 +55,20 @@ const PALETTES = {
     "#9900FF", // purple
     "#542C1D", // brown
     "#B4B4B4", // gray
+    "#FFFFFF", // white
   ],
   palette4: [
+    "#000000", // black
     "#5865CF", // blue
     "#DBF2D6", // green
     "#F7D824", // yellow
     "#C7AC60", // orange
     "#3B3B63", // purple
-    "#202124", // black
     "#9A3706", // brown
     "#FFFFFF", // white
   ],
   palette5: [
+    "#000000", // black
     "#131E9A", // blue
     "#0B004D", // purple
     "#A05846", // brown
@@ -78,7 +86,7 @@ const DEFAULT_PALETTE: PaletteName = "default";
 export const PixelArt: React.FC = () => {
   const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_SIZE);
   const [currentPalette, setCurrentPalette] = useState<PaletteName>(DEFAULT_PALETTE);
-  const [colorIndex, setColorIndex] = useState<number>(7);
+  const [colorIndex, setColorIndex] = useState<number>(PALETTES[DEFAULT_PALETTE].length - 1); // Default to white (last color)
   const [grid, setGrid] = useState<number[][]>(() =>
     Array.from({ length: DEFAULT_SIZE }, () => Array.from({ length: DEFAULT_SIZE }, () => 0))
   );
@@ -317,7 +325,7 @@ export const PixelArt: React.FC = () => {
                 className="aspect-square border border-gray-700"
                 style={{
                   backgroundColor:
-                    grid[row][col] === 0 ? "#000000" : PALETTES[currentPalette][grid[row][col] - 1],
+                    grid[row][col] === 0 ? "#FFFFFF" : PALETTES[currentPalette][grid[row][col] - 1],
                 }}
               />
             ))}
