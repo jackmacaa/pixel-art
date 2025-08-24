@@ -3,12 +3,18 @@ import { supabase, type Drawing } from "../lib/supabase";
 
 interface GalleryProps {
   onNavigateToEditor: () => void;
+  onEditDrawing: (drawing: {
+    grid_data: number[][];
+    grid_size: number;
+    palette_name: string;
+  }) => void;
 }
 
-const Gallery: React.FC<GalleryProps> = ({ onNavigateToEditor }) => {
+const Gallery: React.FC<GalleryProps> = ({ onNavigateToEditor, onEditDrawing }) => {
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingDrawingId, setDeletingDrawingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDrawings();
@@ -37,8 +43,10 @@ const Gallery: React.FC<GalleryProps> = ({ onNavigateToEditor }) => {
 
       if (error) throw error;
       await loadDrawings(); // Reload the list
+      setDeletingDrawingId(null); // Close confirmation dialog
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete drawing");
+      setDeletingDrawingId(null); // Close confirmation dialog on error
     }
   };
 
@@ -133,16 +141,19 @@ const Gallery: React.FC<GalleryProps> = ({ onNavigateToEditor }) => {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      // TODO: Implement edit functionality
-                      console.log("Edit drawing:", drawing.id);
-                    }}
+                    onClick={() =>
+                      onEditDrawing({
+                        grid_data: drawing.grid_data,
+                        grid_size: drawing.grid_size,
+                        palette_name: drawing.palette_name,
+                      })
+                    }
                     className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => deleteDrawing(drawing.id)}
+                    onClick={() => setDeletingDrawingId(drawing.id)}
                     className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
                   >
                     Delete
@@ -153,6 +164,32 @@ const Gallery: React.FC<GalleryProps> = ({ onNavigateToEditor }) => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deletingDrawingId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold text-white mb-4">Delete Drawing</h2>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this drawing? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingDrawingId(null)}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteDrawing(deletingDrawingId)}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -73,9 +73,15 @@ const DEFAULT_PALETTE: PaletteName = "default";
 
 interface PixelArtProps {
   onNavigateToGallery: () => void;
+  initialDrawing?: { grid_data: number[][]; grid_size: number; palette_name: string } | null;
+  onDrawingLoaded?: () => void;
 }
 
-export const PixelArt: React.FC<PixelArtProps> = ({ onNavigateToGallery }) => {
+export const PixelArt: React.FC<PixelArtProps> = ({
+  onNavigateToGallery,
+  initialDrawing,
+  onDrawingLoaded,
+}) => {
   const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_SIZE);
   const [currentPalette, setCurrentPalette] = useState<PaletteName>(DEFAULT_PALETTE);
   const [colorIndex, setColorIndex] = useState<number>(PALETTES[DEFAULT_PALETTE].length - 1); // Default to white (last color)
@@ -261,6 +267,16 @@ export const PixelArt: React.FC<PixelArtProps> = ({ onNavigateToGallery }) => {
       })
       .catch(() => {});
   }, []);
+
+  // Load initial drawing if provided
+  useEffect(() => {
+    if (initialDrawing) {
+      setGridSize(initialDrawing.grid_size as GridSize);
+      setCurrentPalette(initialDrawing.palette_name as PaletteName);
+      setGrid(initialDrawing.grid_data);
+      onDrawingLoaded?.();
+    }
+  }, [initialDrawing, onDrawingLoaded]);
 
   const cells: Cell[] = useMemo(() => {
     const list: Cell[] = [];
