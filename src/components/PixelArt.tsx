@@ -188,11 +188,24 @@ export const PixelArt: React.FC<PixelArtProps> = ({
 
     if (cell) {
       const currentValue = grid[cell.row][cell.col];
-      const mode = currentValue === 0 ? "add" : "remove";
 
-      setDragMode(mode);
-      setIsDragging(true);
-      handlePaint(cell.row, cell.col, mode);
+      // Determine the appropriate mode for dragging (same logic as mouse)
+      if (currentValue === 0) {
+        // Empty square - set to add mode for dragging
+        setDragMode("add");
+        setIsDragging(true);
+        handlePaint(cell.row, cell.col, "add");
+      } else if (currentValue === colorIndex + 1) {
+        // Same color - set to remove mode for dragging
+        setDragMode("remove");
+        setIsDragging(true);
+        handlePaint(cell.row, cell.col, "remove");
+      } else {
+        // Different color - set to add mode for dragging
+        setDragMode("add");
+        setIsDragging(true);
+        handlePaint(cell.row, cell.col, "add");
+      }
     }
   };
 
