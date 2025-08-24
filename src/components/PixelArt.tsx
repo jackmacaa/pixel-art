@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 
 // Grid size options
-const GRID_SIZES = [8, 16, 32] as const;
+const GRID_SIZES = [8, 16, 24, 32] as const;
 type GridSize = (typeof GRID_SIZES)[number];
 
 // Default grid size
@@ -21,7 +21,7 @@ const PALETTES = {
     "#B700FF", // brown
     "#FFFFFF", // white
   ],
-  palette1: [
+  pastel: [
     "#000000", // black
     "#3A224F", // dark purple
     "#73326A", // purple
@@ -33,31 +33,18 @@ const PALETTES = {
     "#1F2E52", // navy
     "#FFFFFF", // white
   ],
-  palette2: [
+  nintendo: [
     "#000000", // black
-    "#C20000", // red
-    "#9E0909", // dark red
-    "#218D00", // green
-    "#00518D", // blue
-    "#EAD200", // yellow
-    "#ECDB42", // light yellow
-    "#E0994C", // orange
-    "#B04500", // dark orange
-    "#FFFFFF", // white
-  ],
-  palette3: [
-    "#000000", // black
-    "#FF000D", // bright red
+    "#F10300", // bright red
     "#FF7E00", // orange
-    "#FFF200", // yellow
-    "#00FF48", // bright green
-    "#0011FF", // blue
-    "#9900FF", // purple
-    "#542C1D", // brown
-    "#B4B4B4", // gray
+    "#FAFF04", // yellow
+    "#7BE308", // green
+    "#0673C9", // blue
+    "#FAC18C", // peach
+    "#984418", // brown
     "#FFFFFF", // white
   ],
-  palette4: [
+  simpsons: [
     "#000000", // black
     "#5865CF", // blue
     "#DBF2D6", // green
@@ -274,34 +261,58 @@ export const PixelArt: React.FC = () => {
               </svg>
             </button>
           </div>
-          {/* Bottom row: Color palette and Palette selector */}
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {PALETTES[currentPalette].map((hex, i) => (
-                <button
-                  key={hex + i}
-                  onClick={() => setColorIndex(i)}
-                  className={`w-6 h-6 rounded border ${
-                    i === colorIndex ? "ring-2 ring-yellow-400" : ""
-                  }`}
-                  style={{ backgroundColor: hex, borderColor: "#555" }}
-                  title={`Color ${i + 1}`}
-                />
+          {/* Middle row: Palette selector and Color navigation */}
+          <div className="flex items-center gap-1">
+            <select
+              value={currentPalette}
+              onChange={(e) => setCurrentPalette(e.target.value as PaletteName)}
+              className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:border-yellow-400"
+            >
+              {Object.keys(PALETTES).map((paletteName) => (
+                <option key={paletteName} value={paletteName}>
+                  {paletteName === "default" ? "Rainbow" : paletteName.replace("palette", "P")}
+                </option>
               ))}
-            </div>
-            <div className="flex items-center gap-1">
-              <select
-                value={currentPalette}
-                onChange={(e) => setCurrentPalette(e.target.value as PaletteName)}
-                className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:border-yellow-400"
-              >
-                {Object.keys(PALETTES).map((paletteName) => (
-                  <option key={paletteName} value={paletteName}>
-                    {paletteName === "default" ? "Rainbow" : paletteName.replace("palette", "P")}
-                  </option>
-                ))}
-              </select>
-            </div>
+            </select>
+            {/* Palette navigation buttons */}
+            <button
+              onClick={() => {
+                const paletteNames = Object.keys(PALETTES) as PaletteName[];
+                const currentIndex = paletteNames.indexOf(currentPalette);
+                const newIndex = currentIndex > 0 ? currentIndex - 1 : paletteNames.length - 1;
+                setCurrentPalette(paletteNames[newIndex]);
+              }}
+              className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600"
+              title="Previous Palette"
+            >
+              ←
+            </button>
+            <button
+              onClick={() => {
+                const paletteNames = Object.keys(PALETTES) as PaletteName[];
+                const currentIndex = paletteNames.indexOf(currentPalette);
+                const newIndex = currentIndex < paletteNames.length - 1 ? currentIndex + 1 : 0;
+                setCurrentPalette(paletteNames[newIndex]);
+              }}
+              className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600"
+              title="Next Palette"
+            >
+              →
+            </button>
+          </div>
+          {/* Bottom row: Color palette */}
+          <div className="flex gap-1">
+            {PALETTES[currentPalette].map((hex, i) => (
+              <button
+                key={hex + i}
+                onClick={() => setColorIndex(i)}
+                className={`w-6 h-6 rounded border ${
+                  i === colorIndex ? "ring-2 ring-yellow-400" : ""
+                }`}
+                style={{ backgroundColor: hex, borderColor: "#555" }}
+                title={`Color ${i + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
