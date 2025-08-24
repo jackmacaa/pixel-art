@@ -1,7 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PixelArt } from "./components/PixelArt";
+import Gallery from "./components/Gallery";
+
+type AppView = "editor" | "gallery";
 
 function App() {
+  const [currentView, setCurrentView] = useState<AppView>("editor");
+
   // Set dynamic viewport height for mobile
   useEffect(() => {
     const setVH = () => {
@@ -14,11 +19,16 @@ function App() {
     return () => window.removeEventListener("resize", setVH);
   }, []);
 
-  return (
-    <div className="min-h-screen poker-table-bg">
-      <PixelArt />
-    </div>
-  );
+  const renderView = () => {
+    switch (currentView) {
+      case "gallery":
+        return <Gallery onNavigateToEditor={() => setCurrentView("editor")} />;
+      default:
+        return <PixelArt onNavigateToGallery={() => setCurrentView("gallery")} />;
+    }
+  };
+
+  return <div className="min-h-screen poker-table-bg">{renderView()}</div>;
 }
 
 export default App;

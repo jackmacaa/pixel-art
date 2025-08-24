@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import SaveDialog from "./SaveDialog";
 
 // Grid size options
 const GRID_SIZES = [8, 16, 24, 32] as const;
@@ -70,7 +71,11 @@ const PALETTES = {
 type PaletteName = keyof typeof PALETTES;
 const DEFAULT_PALETTE: PaletteName = "default";
 
-export const PixelArt: React.FC = () => {
+interface PixelArtProps {
+  onNavigateToGallery: () => void;
+}
+
+export const PixelArt: React.FC<PixelArtProps> = ({ onNavigateToGallery }) => {
   const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_SIZE);
   const [currentPalette, setCurrentPalette] = useState<PaletteName>(DEFAULT_PALETTE);
   const [colorIndex, setColorIndex] = useState<number>(PALETTES[DEFAULT_PALETTE].length - 1); // Default to white (last color)
@@ -79,6 +84,8 @@ export const PixelArt: React.FC = () => {
   );
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"add" | "remove" | null>(null);
+  const [drawingMode, setDrawingMode] = useState<"normal" | "mirror">("normal");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   type ReferenceImage = { name: string; url: string; description?: string };
@@ -95,12 +102,41 @@ export const PixelArt: React.FC = () => {
       const currentValue = next[row][col];
       const mode = forceMode || dragMode;
 
-      if (mode === "remove" || (mode === null && currentValue !== 0)) {
+      // Calculate mirror position
+      const mirrorRow = gridSize - 1 - row;
+      const mirrorCol = gridSize - 1 - col;
+
+      if (mode === "remove") {
         // Remove pixel (set to 0)
         next[row][col] = 0;
-      } else {
+        // Mirror mode: also remove the opposite pixel
+        if (drawingMode === "mirror") {
+          next[mirrorRow][mirrorCol] = 0;
+        }
+      } else if (mode === "add") {
         // Add pixel with current color (add 1 to account for the shifted indices)
         next[row][col] = colorIndex + 1;
+        // Mirror mode: also add the opposite pixel
+        if (drawingMode === "mirror") {
+          next[mirrorRow][mirrorCol] = colorIndex + 1;
+        }
+      } else {
+        // This should never happen with the current logic, but keeping for safety
+        if (currentValue === colorIndex + 1) {
+          // Same color - clear to white
+          next[row][col] = 0;
+          // Mirror mode: also clear the opposite pixel
+          if (drawingMode === "mirror") {
+            next[mirrorRow][mirrorCol] = 0;
+          }
+        } else {
+          // Different color - replace with selected color
+          next[row][col] = colorIndex + 1;
+          // Mirror mode: also replace the opposite pixel
+          if (drawingMode === "mirror") {
+            next[mirrorRow][mirrorCol] = colorIndex + 1;
+          }
+        }
       }
       return next;
     });
@@ -108,6 +144,11 @@ export const PixelArt: React.FC = () => {
 
   const handleClearAll = () => {
     setGrid(Array.from({ length: gridSize }, () => Array.from({ length: gridSize }, () => 0)));
+  };
+
+  const handleSaveSuccess = () => {
+    // Could add a success notification here
+    console.log("Drawing saved successfully!");
   };
 
   const handleGridSizeChange = (newSize: GridSize) => {
@@ -169,11 +210,24 @@ export const PixelArt: React.FC = () => {
 
   const handleMouseDown = (row: number, col: number) => {
     const currentValue = grid[row][col];
-    const mode = currentValue === 0 ? "add" : "remove";
 
-    setDragMode(mode);
-    setIsDragging(true);
-    handlePaint(row, col, mode);
+    // Determine the appropriate mode for dragging
+    if (currentValue === 0) {
+      // Empty square - set to add mode for dragging
+      setDragMode("add");
+      setIsDragging(true);
+      handlePaint(row, col, "add");
+    } else if (currentValue === colorIndex + 1) {
+      // Same color - set to remove mode for dragging
+      setDragMode("remove");
+      setIsDragging(true);
+      handlePaint(row, col, "remove");
+    } else {
+      // Different color - set to add mode for dragging
+      setDragMode("add");
+      setIsDragging(true);
+      handlePaint(row, col, "add");
+    }
   };
 
   const handleMouseEnter = (row: number, col: number) => {
@@ -219,86 +273,119 @@ export const PixelArt: React.FC = () => {
   return (
     <div className="min-h-screen poker-table-bg">
       {/* Header */}
-      <div className="bg-black bg-opacity-60 p-4 border-b border-gray-600">
+      <div className="bg-black bg-opacity-60 p-2 border-b border-gray-600">
         <div className="flex flex-col gap-2">
-          {/* Top row: Grid size selector and Clear All */}
+          {/* Top row: Grid selector, Palette controls, and Clear All */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-white text-sm">Grid:</span>
-              {GRID_SIZES.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => handleGridSizeChange(size)}
-                  className={`px-2 py-1 text-xs rounded border ${
-                    size === gridSize
-                      ? "bg-yellow-600 text-white border-yellow-400"
-                      : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
-                  }`}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <span className="text-white text-sm">Grid:</span>
+                <select
+                  value={gridSize}
+                  onChange={(e) => handleGridSizeChange(Number(e.target.value) as GridSize)}
+                  className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:border-yellow-400"
                 >
-                  {size}×{size}
+                  {GRID_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}×{size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <select
+                  value={currentPalette}
+                  onChange={(e) => setCurrentPalette(e.target.value as PaletteName)}
+                  className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:border-yellow-400"
+                >
+                  {Object.keys(PALETTES).map((paletteName) => (
+                    <option key={paletteName} value={paletteName}>
+                      {paletteName === "default" ? "Rainbow" : paletteName.replace("palette", "P")}
+                    </option>
+                  ))}
+                </select>
+                {/* Palette navigation buttons */}
+                <button
+                  onClick={() => {
+                    const paletteNames = Object.keys(PALETTES) as PaletteName[];
+                    const currentIndex = paletteNames.indexOf(currentPalette);
+                    const newIndex = currentIndex < paletteNames.length - 1 ? currentIndex + 1 : 0;
+                    setCurrentPalette(paletteNames[newIndex]);
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600"
+                  title="Next Palette"
+                >
+                  →
                 </button>
-              ))}
+              </div>
             </div>
-            {/* Clear All button with trash icon */}
-            <button
-              onClick={handleClearAll}
-              className="p-2 bg-red-600 hover:bg-red-700 text-white rounded"
-              title="Clear All"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
+            <div className="flex items-center gap-2">
+              {/* Gallery button */}
+              <button
+                onClick={onNavigateToGallery}
+                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                title="Gallery"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
-          </div>
-          {/* Middle row: Palette selector and Color navigation */}
-          <div className="flex items-center gap-1">
-            <select
-              value={currentPalette}
-              onChange={(e) => setCurrentPalette(e.target.value as PaletteName)}
-              className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600 focus:outline-none focus:border-yellow-400"
-            >
-              {Object.keys(PALETTES).map((paletteName) => (
-                <option key={paletteName} value={paletteName}>
-                  {paletteName === "default" ? "Rainbow" : paletteName.replace("palette", "P")}
-                </option>
-              ))}
-            </select>
-            {/* Palette navigation buttons */}
-            <button
-              onClick={() => {
-                const paletteNames = Object.keys(PALETTES) as PaletteName[];
-                const currentIndex = paletteNames.indexOf(currentPalette);
-                const newIndex = currentIndex > 0 ? currentIndex - 1 : paletteNames.length - 1;
-                setCurrentPalette(paletteNames[newIndex]);
-              }}
-              className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600"
-              title="Previous Palette"
-            >
-              ←
-            </button>
-            <button
-              onClick={() => {
-                const paletteNames = Object.keys(PALETTES) as PaletteName[];
-                const currentIndex = paletteNames.indexOf(currentPalette);
-                const newIndex = currentIndex < paletteNames.length - 1 ? currentIndex + 1 : 0;
-                setCurrentPalette(paletteNames[newIndex]);
-              }}
-              className="px-2 py-1 text-xs bg-gray-700 text-gray-300 border border-gray-600 rounded hover:bg-gray-600"
-              title="Next Palette"
-            >
-              →
-            </button>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </button>
+
+              {/* Save button */}
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                className="p-2 bg-green-600 hover:bg-green-700 text-white rounded"
+                title="Save Drawing"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+                  />
+                </svg>
+              </button>
+
+              {/* Clear All button with trash icon */}
+              <button
+                onClick={handleClearAll}
+                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded"
+                title="Clear All"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
           {/* Bottom row: Color palette */}
           <div className="flex gap-1">
@@ -344,16 +431,44 @@ export const PixelArt: React.FC = () => {
         </div>
       </div>
 
+      {/* Drawing mode selector */}
+      <div className="relative mx-auto mt-2" style={{ maxWidth: "100vw" }}>
+        <div className="mx-4">
+          <div className="bg-gray-900 bg-opacity-30 rounded-lg p-2">
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm">Mode:</span>
+              <button
+                onClick={() => setDrawingMode("normal")}
+                className={`px-1.5 py-0.5 text-xs rounded border ${
+                  drawingMode === "normal"
+                    ? "bg-yellow-600 text-white border-yellow-400"
+                    : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                onClick={() => setDrawingMode("mirror")}
+                className={`px-1.5 py-0.5 text-xs rounded border ${
+                  drawingMode === "mirror"
+                    ? "bg-yellow-600 text-white border-yellow-400"
+                    : "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                }`}
+              >
+                Mirror
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Reference image area - natural flow, capped height to avoid overlap */}
       <div className="relative mx-auto mt-1" style={{ maxWidth: "100vw" }}>
         <div className="mx-4">
           <div className="bg-gray-900 bg-opacity-30 rounded-lg p-1">
             <div className="flex items-start gap-2">
               {/* Image display */}
-              <div
-                className="flex items-center justify-center overflow-hidden flex-1"
-                style={{ maxHeight: "40vh" }}
-              >
+              <div className="flex items-center justify-center overflow-hidden flex-1 min-h-0">
                 <img
                   src={
                     referenceImages[
@@ -366,7 +481,7 @@ export const PixelArt: React.FC = () => {
                 />
               </div>
               {/* Image selector */}
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 flex-shrink-0">
                 {referenceImages.map((img, index) => (
                   <button
                     key={img.name}
@@ -389,6 +504,16 @@ export const PixelArt: React.FC = () => {
 
       {/* Bottom controls padding */}
       <div className="h-24" />
+
+      {/* Save Dialog */}
+      <SaveDialog
+        isOpen={showSaveDialog}
+        onClose={() => setShowSaveDialog(false)}
+        onSave={handleSaveSuccess}
+        gridData={grid}
+        gridSize={gridSize}
+        paletteName={currentPalette}
+      />
     </div>
   );
 };
