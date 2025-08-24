@@ -45,6 +45,17 @@ const PALETTES = {
     "#984418", // brown
     "#FFFFFF", // white
   ],
+  gameboy: [
+    "#000000", // black
+    "#2C4A32", // dark green
+    "#315639", // green
+    "#306230", // light green
+    "#0F380F", // dark green
+    "#8BAC0F", // light green
+    "#9BBC0F", // light green
+    "#CADC9F", // light green
+    "#FFFFFF", // white
+  ],
   simpsons: [
     "#000000", // black
     "#5865CF", // blue
