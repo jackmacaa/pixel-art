@@ -84,7 +84,7 @@ export const PixelArt: React.FC<PixelArtProps> = ({
 }) => {
   const [gridSize, setGridSize] = useState<GridSize>(DEFAULT_SIZE);
   const [currentPalette, setCurrentPalette] = useState<PaletteName>(DEFAULT_PALETTE);
-  const [colorIndex, setColorIndex] = useState<number>(PALETTES[DEFAULT_PALETTE].length - 1); // Default to white (last color)
+  const [colorIndex, setColorIndex] = useState<number>(0); // Default to black (first color)
   const [grid, setGrid] = useState<number[][]>(() =>
     Array.from({ length: DEFAULT_SIZE }, () => Array.from({ length: DEFAULT_SIZE }, () => 0))
   );
